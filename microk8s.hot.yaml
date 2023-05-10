@@ -68,7 +68,7 @@ parameters:
     type: json
     label: Tags
     description: Tags
-    default: []
+    default: {}
   timezone:
     type: string
     label: TimeZone
@@ -141,13 +141,14 @@ resources:
         properties:
           availability_zone: {get_param: availability_zone}
           flavor: {get_param: flavor}
-          #floating_network: {get_param: network_external}
+          floating_network: {get_param: network_external}
           image: {get_param: image}
           key_name: {get_param: key_name}
           metadata:
-            groups: "k8s,microk8s"
-            stack_name: {get_param: OS::stack_name}
-          name: {list_join: ['.',["n-%index%", get_param: OS::stack_name, get_param: dns_domain]]}
+            map_merge:
+              - {get_param: tags }
+              - {"stack_name": {get_param: OS::stack_name}}
+          name: {list_join: ['.',["n%index%", get_param: OS::stack_name, get_param: dns_domain]]}
           network: {if: [createNetwork, {get_resource: private_network}, {get_param: network}]}
           security_groups:
             - {get_resource: security_group}
