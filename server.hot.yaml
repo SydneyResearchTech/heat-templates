@@ -14,9 +14,12 @@ parameters:
   networks: {type: json, default: []}
   security_groups: {type: json}
   timezone: {type: string, default: Australia/Sydney}
+  volume_size: {type: number, default: 0}
+  volume_type: {type: string, default: standard}
 
 conditions:
   attachFloatingIP: {not: {equals: [{get_param: floating_network}, None]}}
+  attachVolume: {not: {equals: [{get_param: volume_size}, 0]}}
 
 resources:
   port:
@@ -32,6 +35,24 @@ resources:
       floating_network: {get_param: floating_network}
       port_id: {get_resource: port}
     condition: attachFloatingIP
+
+  volume:
+    type: OS::Cinder::Volume
+    condition: attachVolume
+    properties:
+      availability_zone: {get_param: availability_zone}
+      description: ""
+      metadata: {get_param: metadata}
+      name: {get_param: name}
+      size: {get_param: volume_size}
+      volume_type: {get_param: volume_type}
+
+  volumeAttachment:
+    type: OS::Cinder::VolumeAttachment
+    condition: attachVolume
+    properties:
+      instance_uuid: {get_resource: server}
+      volume_id: {get_resource: volume}
 
   server:
     type: OS::Nova::Server

@@ -73,10 +73,13 @@ parameters:
     type: string
     label: TimeZone
     description: Deployment timezone
-    default: Australia/Melbourne
+    default: Australia/Sydney
+  volume_size: {type: number, default: 0}
+  volume_type: {type: string, default: standard}
 
 conditions:
   createNetwork: {equals: [{get_param: network}, 'None']}
+  useSubnetCidr: {not: {equals: [{get_parm: network_cidr}, '']}}
 
 resources:
   private_network:
@@ -88,10 +91,10 @@ resources:
     type: OS::Neutron::Subnet
     properties:
       network_id: {get_resource: private_network}
-      cidr: {get_param: network_cidr}
       dns_nameservers: {get_param: dns_nameservers}
       host_routes: {get_param: subnet_host_routes}
       name: {get_param: OS::stack_name}
+      cidr: {get_param: network_cidr}
       #subnetpool: {get_param: subnet_pool}
 
   router:
@@ -153,3 +156,5 @@ resources:
           security_groups:
             - {get_resource: security_group}
             - {get_resource: expose_security_group}
+          volume_size: {get_param: volume_size}
+          volume_type: {get_param: volume_type}
