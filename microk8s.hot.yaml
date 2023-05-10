@@ -64,6 +64,11 @@ parameters:
     label: IPAM subnet pool name
     description: Project subnet pool name for IP range to be allocated from
     default: None
+  tags:
+    type: json
+    label: Tags
+    description: Tags
+    default: []
   timezone:
     type: string
     label: TimeZone
@@ -83,7 +88,7 @@ resources:
     type: OS::Neutron::Subnet
     properties:
       network_id: {get_resource: private_network}
-      cidr: {get_resource: network_cidr}
+      cidr: {get_param: network_cidr}
       dns_nameservers: {get_param: dns_nameservers}
       host_routes: {get_param: subnet_host_routes}
       name: {get_param: OS::stack_name}
