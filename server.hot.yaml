@@ -1,0 +1,77 @@
+heat_template_version: 2018-08-31
+
+description: server base template
+
+parameters:
+  availability_zone: {type: string}
+  flavor: {type: string}
+  floating_network: {type: string, default: None}
+  image: {type: string}
+  key_name: {type: string}
+  metadata: {type: json, default: '{}'}
+  name: {type: string}
+  network: {type: string}
+  networks: {type: json, default: []}
+  security_groups: {type: json}
+  timezone: {type: string, default: Australia/Sydney}
+
+conditions:
+  attachFloatingIP: {not: {equals: [{get_param: floating_network}, None]}}
+
+resources:
+  port:
+    type: OS::Neutron::Port
+    properties:
+      name: {get_param: name}
+      network: {get_param: network}
+      security_groups: {get_param: security_groups}
+
+  floating_ip:
+    type: OS::Neutron::FloatingIP
+    properties:
+      floating_network: {get_param: floating_network}
+      port_id: {get_resource: port}
+    condition: attachFloatingIP
+
+  server:
+    type: OS::Nova::Server
+    properties:
+      flavor: {get_param: flavor}
+      availability_zone: {get_param: availability_zone}
+      image: {get_param: image}
+      key_name: {get_param: key_name}
+      metadata: {get_param: metadata}
+      name: {get_param: name}
+      networks:
+        list_concat:
+          - [{port: {get_resource: port}}]
+          - {get_param: networks}
+      user_data:
+        str_replace:
+          params:
+            ${HOSTNAME}: {get_param: name}
+            ${TIMEZONE}: {get_param: timezone}
+          template: |
+            #cloud-config
+            bootcmd:
+            - echo 'APT::Periodic::Update-Package-Lists "0";' >/etc/apt/apt.conf.d/90auto-upgrades-override
+            - echo 'APT::Periodic::Download-Upgradeable-Packages "0";' >>/etc/apt/apt.conf.d/90auto-upgrades-override
+            - echo 'APT::Periodic::AutocleanInterval "0";' >>/etc/apt/apt.conf.d/90auto-upgrades-override
+            - echo 'APT::Periodic::Unattended-Upgrade "0";' >>/etc/apt/apt.conf.d/90auto-upgrades-override
+            fqdn: ${HOSTNAME}
+            locale: en_AU.utf8
+            timezone: ${TIMEZONE}
+            packages:
+            - python3
+            - python3-pip
+            package_reboot_if_required: true
+            package_update: true
+            package_upgrade: true
+            ssh_authorized_keys: []
+            write_files:
+            - content: |
+                manage_etc_hosts: false
+              defer: true
+              path: /etc/cloud/cloud.cfg.d/90_user-data-overrides.cfg
+      user_data_format: RAW
+      user_data_update_policy: IGNORE
