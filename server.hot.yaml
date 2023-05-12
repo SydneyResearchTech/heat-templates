@@ -13,6 +13,7 @@ parameters:
   network: {type: string}
   networks: {type: json, default: []}
   security_groups: {type: json}
+  ssh_authorized_keys: {type: json, default: []}
   timezone: {type: string, default: Australia/Sydney}
   volume_size: {type: number, default: 0}
   volume_type: {type: string, default: standard}
@@ -72,6 +73,7 @@ resources:
           params:
             ${HOSTNAME}: {get_param: name}
             ${TIMEZONE}: {get_param: timezone}
+            ${SSH_KEYS}: {get_param: ssh_authorized_keys}
           template: |
             #cloud-config
             bootcmd:
@@ -88,7 +90,7 @@ resources:
             package_reboot_if_required: true
             package_update: true
             package_upgrade: true
-            ssh_authorized_keys: []
+            ssh_authorized_keys: ${SSH_KEYS}
             write_files:
             - content: |
                 manage_etc_hosts: false
