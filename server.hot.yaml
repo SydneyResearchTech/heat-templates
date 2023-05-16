@@ -17,10 +17,15 @@ parameters:
   timezone: {type: string, default: Australia/Sydney}
   volume_size: {type: number, default: 0}
   volume_type: {type: string, default: standard}
+  zone: {type: string, default: None}
 
 conditions:
   attachFloatingIP: {not: {equals: [{get_param: floating_network}, None]}}
   attachVolume: {not: {equals: [{get_param: volume_size}, 0]}}
+  createDnsRR:
+    and:
+      - {not: {equals: [{get_param: zone}, None]}}
+      - attachFloatingIP
 
 resources:
   port:
@@ -34,8 +39,20 @@ resources:
     type: OS::Neutron::FloatingIP
     properties:
       floating_network: {get_param: floating_network}
+      dns_domain: abird.cloud.edu.au.
+      dns_name: {get_param: name}
       port_id: {get_resource: port}
     condition: attachFloatingIP
+
+  dns_rr:
+    type: OS::Designate::RecordSet
+    properties:
+      records:
+        - {get_attr: [floating_ip,floating_ip_address]}
+      type: A
+      zone: {str_replace: {template: "${ZONE}.", params: {"${ZONE}": {get_param: zone}}}}
+      name: {str_replace: {template: "${NAME}.", params: {"${NAME}": {get_param: name}}}}
+    condition: createDnsRR
 
   volume:
     type: OS::Cinder::Volume
