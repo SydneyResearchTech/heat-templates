@@ -39,8 +39,8 @@ resources:
     type: OS::Neutron::FloatingIP
     properties:
       floating_network: {get_param: floating_network}
-      dns_domain: abird.cloud.edu.au.
-      dns_name: {get_param: name}
+      #dns_domain: abird.cloud.edu.au.
+      #dns_name: {get_param: name}
       port_id: {get_resource: port}
     condition: attachFloatingIP
 
