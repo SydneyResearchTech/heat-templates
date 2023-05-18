@@ -94,13 +94,39 @@ parameters:
     default: Australia/Sydney
   volume_size: {type: number, default: 0}
   volume_type: {type: string, default: standard}
+  k8s_enc_key_name: {type: string, default: "", label: K8sEncKeyName, description: Kubernetes encryption provider key name}
 
 conditions:
   createNetwork: {equals: [{get_param: network}, 'None']}
   useSubnetCidr: {not: {equals: [{get_parm: network_cidr}, '']}}
   hasProjectName: {not: {equals: [{get_param: project_name}, 'None']}}
+  createK8sSecret: {not: {equals: [{get_param: k8s_enc_key_name},'']}}
+
+outputs:
+  internalNetworkName:
+    value: {get_attr: [private_network,name]}
+  publicNetworkName:
+    value: {get_param: network_external}
+  routerId:
+    value: {get_resource: router}
+  secretRef:
+    description: "Kubernetes encryption provider key reference"
+    value: {get_attr: [k8s_encryption,secret_ref]}
+    condition: createK8sSecret
 
 resources:
+  k8s_encryption:
+    type: OS::Barbican::Order
+    properties:
+      type: key
+      algorithm: aes
+      bit_length: 256
+      #expiration: ISO-8601 format
+      mode: cbc
+      name: {get_param: k8s_enc_key_name}
+      payload_content_type: application/octet-stream
+    condition: createK8sSecret
+
   private_network:
     type: OS::Neutron::Net
     properties:
